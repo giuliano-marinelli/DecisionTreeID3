@@ -13,9 +13,14 @@ id3_run(_Tree) :-
 	write('Dominios de atributos'),nl,
 	write(RowsDomains),nl,nl,
 	write('Tabla de entropia'),nl,
-	gen0(RowsInst,RowsDomains,[],EntropyTable,CantInst),
-	write(EntropyTable),nl,nl,
-	write(CantInst).
+	gen0(RowsInst,RowsDomains,[],ContTable,CantInsts),
+	write(ContTable),nl,nl,
+	write('Cantidad de instancias: '),
+	write(CantInsts),nl,
+	entropy_class(ContTable,CantInsts,Props),
+	entropy(Props,0,EntropyTotal),
+	write('Entropia total: '),
+	write(EntropyTotal).
 	%gen_inds(Rows,Attrs,Inds).
 
 rows_domains(
@@ -53,13 +58,13 @@ load(File, Rows) :-
 %	Class == ClassD,
 %	count_dom((Attr,Val),Class,AttrDs,[ClassD|ClassDs],Count).
 
-gen0([RInst|RInsts],RAttrs,Arrays,Rs,CantInst1) :-
+gen0([RInst|RInsts],RAttrs,Arrays,Rs,CantInsts) :-
 	RInst =.. [row|Inst],
 	gen1(Inst,RAttrs,Array),
 	check1(Array,Arrays,ArraysComb),
 	%write(ArraysComb),nl,nl,
 	gen0(RInsts,RAttrs,ArraysComb,Rs,CantInst),
-	CantInst1 is CantInst + 1.
+	CantInsts is CantInst + 1.
 	
 gen0([],_,Arrays,Arrays,0).
 
@@ -95,7 +100,8 @@ gen1([Val|Vals],[RAttr|RAttrs],RMaps) :-
 	gen1(Vals,RAttrs,Maps),
 	append(Map,Maps,RMaps).
 	
-gen1(Class,[_RAttr],Class). 
+
+gen1([Class],[_RAttr],[1,Class]). 
 	
 gen2(Val,[Dom|Doms],[1|Rest]) :-
 	Val == Dom,
@@ -118,61 +124,41 @@ gen2(_Val,[],[]).
 % donde EntropyTable.getSumaRegistros() devuelve la cantidad de registros que se leyeron del archivo de entrada.
 
 %entropia_total recibe EntropyTable, Atributos que seria rows_domains pero leidos del archivo de entrada, y devuelve la EntropyTotal.
-entropia_total(EntropyTable,Atributos,EntropyTotal):-
-	contar_registros_clases(EntropyTable,[Cant|CantPorClase]),
-	length(Atributos,CantAtr),
-	CantAtr2 is CantAtr-1,%se resta 1 porque la clase no cuenta en la division.
-	CantRegistros is Cant/CantAtr2, 
-	dividir(CantPorClase,CantRegistros,CantAtr2,Proporcion),
-	entropy(Proporcion,0,EntropyTotal).
 
-dividir([],_CantRegistros,_CantAtr,[]).
-dividir([[Cant,Class]|RestClass],CantRegistros,CantAtr,[[Proporcion,Class]|RR]):-
-	Proporcion is (Cant/CantAtr)/CantRegistros,
-	dividir(RestClass,CantRegistros,CantAtr,RR).
+entropy_class([],_,[]).
+
+entropy_class([ContClass|ContClasses],CantInsts,[Prop|Props]) :-
+	append(_,[CantClass,_Class], ContClass),
+	write(['CantClass: ',CantClass,' CantInsts: ',CantInsts]),nl,
+	Prop is CantClass / CantInsts,
+	write(['Prop: ',Prop]),nl,
+	entropy_class(ContClasses,CantInsts,Props).
 
 %recibe EntropyTable y devuelve una lista con el total de elementos y la suma de la cantidad de elementos para cada clase:
 % genericamente [totalRegistros,[cantidad,Class1],...,[cantidad,ClassN]].
 % si recibe [[1,2,e],[0,2,p]] devuelve [5,[3,e],[2,p]]. 
-contar_registros_clases(EntropyTable,EntPorClase):- 
-	contar_registros_clases_(EntropyTable,EntPorClase,0).
-
-contar_registros_clases_([],[N],N). 
-contar_registros_clases_([RClass|RestClass],EntPorClase,Cant):- 
-	%calcular entropia del sistema.
-	sumar_elementos(RClass,CantReg,Class), %devuelve la cantidad de registros y a que clase pertenecen
-	CantParcial is CantReg + Cant,
-	contar_registros_clases_(RestClass,CantRegs,CantParcial),
-	append(CantRegs,[[CantReg,Class]],EntPorClase).
-
-
-sumar_elementos([Class],0,Class).
-sumar_elementos([Val1|RVals],Cant,Class):-
-	sumar_elementos(RVals,Cant2,Class),
-	Cant is Val1+Cant2.
-
-
-%para los atributos
-entropy_atributo([],_Ini,_R).
-entropy_atributo([Val|RVal],Ini,Res):-
-	entropy([Val|RVal],0,Entropy1),
-	Res2 is -1*Val*Entropy1,
-	entropy_atributo(RVal,Res2,Res).
 
 %para la del sistema
-entropy([],Ini,Ini).
-entropy([[Val,Class]|RVal],Ini,Entropy):-
-	log_2(Val,Log),
-	Res2 is Ini-1*Val*Log,
-	entropy(RVal,Res2,Entropy).
+entropy([],Res,Res).
 
+entropy([Prop|Props],Res1,Entropy):-
+	log2(Prop,Log),
+	Res2 is Res1-1*Prop*Log,
+	entropy(Props,Res2,Entropy).
 
+%para los atributos
+entropy_atrib([],Res,Res).
+
+entropy_atrib([Prop|Props],Res1,Entropy):-
+	entropy([Prop|Props],0,Entropy1),
+	Res2 is Res1-1*Prop*Entropy1,
+	entropy_atrib(Props,Res2,Entropy).
 
 %calculo de logaritmo base 2. Recibe A y devuelve Res.
-log_2(A,Res):-log10(A,R), log10(2,T), Res is R/T.
-
-
-
+log2(A,Res) :-
+	log10(A,R),
+	log10(2,T),
+	Res is R/T.
 
 %%%%%%%%%%%%
 %PRINT TREE%
