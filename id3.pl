@@ -13,8 +13,9 @@ id3_run(_Tree) :-
 	write('Dominios de atributos'),nl,
 	write(RowsDomains),nl,nl,
 	write('Tabla de entropia'),nl,
-	gen0(RowsInst,RowsDomains,[],EntropyTable),
-	write(EntropyTable).
+	gen0(RowsInst,RowsDomains,[],EntropyTable,CantInst),
+	write(EntropyTable),nl,nl,
+	write(CantInst).
 	%gen_inds(Rows,Attrs,Inds).
 
 rows_domains(
@@ -52,14 +53,15 @@ load(File, Rows) :-
 %	Class == ClassD,
 %	count_dom((Attr,Val),Class,AttrDs,[ClassD|ClassDs],Count).
 
-gen0([RInst|RInsts],RAttrs,Arrays,Rs) :-
+gen0([RInst|RInsts],RAttrs,Arrays,Rs,CantInst1) :-
 	RInst =.. [row|Inst],
 	gen1(Inst,RAttrs,Array),
 	check1(Array,Arrays,ArraysComb),
 	%write(ArraysComb),nl,nl,
-	gen0(RInsts,RAttrs,ArraysComb,Rs).
+	gen0(RInsts,RAttrs,ArraysComb,Rs,CantInst),
+	CantInst1 is CantInst + 1.
 	
-gen0([],_,Arrays,Arrays).
+gen0([],_,Arrays,Arrays,0).
 
 check1(Array1,[Array2|Arrays],[RC|Rs]) :-
 	last(Array1,Class1),
