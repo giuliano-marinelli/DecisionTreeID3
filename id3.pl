@@ -4,9 +4,9 @@
 :- dynamic step/1.
 
 id3_run(_Tree) :-
-	load('EclipseProjects/DesitionTreeID3/mushroom_values_test_2.csv', RowsInst),
+	load('EclipseProjects/DesitionTreeID3/mushroom_values_test_short.csv', RowsInst),
+	%load('EclipseProjects/DesitionTreeID3/mushroom_domains_test.csv', _RowsDomains),
 	load('EclipseProjects/DesitionTreeID3/mushroom_attributes_test.csv', _RowsAttrs),
-	%load('D:/giuli/Documents/EclipseProjects/DesitionTreeID3/mushroom_domains_test.csv', RowsDomains),
 	rows_domains(RowsDomains),
 	%write('Instancias'),nl,
 	%write(RowsInst),nl,nl,
@@ -32,31 +32,6 @@ row(b, h, k, n, o, r, u, w, y),row(a, c, n, s, v, y),row(d, g, l, m, p, u, w),ro
 
 load(File, Rows) :-
     csv_read_file(File, Rows).
-
-%gen_inds([Row|Rows],Attrs,[Ind|Inds]) :-
-%	Row =.. [row|Vals],
-%	gen_ind(Vals,Attrs,Ind),
-%	gen_inds(Rows,Attrs,Inds).
-	
-%gen_inds([],_Attrs,[]).
-
-%para que la clase no sea un par (Attr,Val)
-%gen_ind([Val|[]],[_Attr|[]],[Val]).
-
-%gen_ind([Val|Vals],[Attr|Attrs],[(Attr,Val)|Pairs]) :-
-%	gen_ind(Vals,Attrs,Pairs).
-
-%gen_ind([],[],[]).
-
-%gen_entropy_table(Inds,Doms,ETable).
-%gen_count_ind([(Attr,Val)|[Pairs|Class]],[Dom|[Doms|DomClass]],[(Attr.Val,Res)|ETable]) :-
-%	Dom =.. [row|[AttrD]],
-%	DomClass =.. [row|ClassD].
-	
-%count_dom((Attr,Val),Class,[AttrD|AttrDs],[ClassD|ClassDs],[1|Count]) :-
-%	Val == AttrD,
-%	Class == ClassD,
-%	count_dom((Attr,Val),Class,AttrDs,[ClassD|ClassDs],Count).
 
 gen0([RInst|RInsts],RAttrs,Arrays,Rs,CantInsts) :-
 	RInst =.. [row|Inst],
@@ -113,17 +88,27 @@ gen2(Val,[Dom|Doms],[0|Rest]) :-
 
 gen2(_Val,[],[]).
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%
-%%% CALCULO ENTROPIA %%%
-%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+%CALCULO ENTROPIA%
+%%%%%%%%%%%%%%%%%%
 
 % basados en la EntropyTable:
 % 1: calcular la entropia del sistema: -1* sum{class€{e,p}}((EntropyTable.getSumaElementos(class) / EntropyTable.getSumaRegistros()))
 % donde EntropyTable.getSumaRegistros() devuelve la cantidad de registros que se leyeron del archivo de entrada.
 
 %entropia_total recibe EntropyTable, Atributos que seria rows_domains pero leidos del archivo de entrada, y devuelve la EntropyTotal.
+
+best_attr([RAttr|RAttrs],ContTable,BestAttr) :-
+	RAttr =.. [row|Doms],
+	
+prop_doms([],_,[]).
+
+prop_doms([_Dom|Doms],ContTable,[Prop|Props]) :-
+	prop_dom(ContTable,Prop),
+	prop_doms(Doms,ContTable,Props).
+
+prop_dom([ContClass|ContClasses],[Prop|Props]).
+	
 
 entropy_class([],_,[]).
 
@@ -147,12 +132,13 @@ entropy([Prop|Props],Res1,Entropy):-
 	entropy(Props,Res2,Entropy).
 
 %para los atributos
-entropy_atrib([],Res,Res).
+entropy_attr([],Res,Res).
 
-entropy_atrib([Prop|Props],Res1,Entropy):-
-	entropy([Prop|Props],0,Entropy1),
+entropy_attr([Prop|Props],Res1,Entropy):-
+	entropy([Prop],0,Entropy1),
+	write(['Entropy D: ',Entropy1]),
 	Res2 is Res1-1*Prop*Entropy1,
-	entropy_atrib(Props,Res2,Entropy).
+	entropy_attr(Props,Res2,Entropy).
 
 %calculo de logaritmo base 2. Recibe A y devuelve Res.
 log2(A,Res) :-
