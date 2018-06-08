@@ -4,16 +4,16 @@
 :- dynamic step/1.
 
 id3_run(_Tree) :-
-	load('EclipseProjects/DesitionTreeID3/mushroom_values_test_short.csv', RowsInst),
-	%load('EclipseProjects/DesitionTreeID3/mushroom_domains_test.csv', _RowsDomains),
-	load('EclipseProjects/DesitionTreeID3/mushroom_attributes_test.csv', _RowsAttrs),
+	load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_values_test.csv', RowsInsts),
+	%load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_domains_test.csv', _RowsDomains),
+	load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_attributes_test.csv', _RowsAttrs),
 	rows_domains(RowsDomains),
 	%write('Instancias'),nl,
 	%write(RowsInst),nl,nl,
 	write('Dominios de atributos'),nl,
 	write(RowsDomains),nl,nl,
-	write('Tabla de entropia'),nl,
-	gen0(RowsInst,RowsDomains,[],ContTable,CantInsts),
+	write('Tabla de conteo'),nl,
+	gen0(RowsInsts,RowsDomains,[],ContTable,CantInsts),
 	write(ContTable),nl,nl,
 	write('Cantidad de instancias: '),
 	write(CantInsts),nl,
@@ -69,6 +69,12 @@ sum_lists([X|Xs],[Y|Ys],[R|Rs]) :-
 
 sum_lists([],[],[]).
 
+sum_multiple_lists([X|Xs],Rs) :-
+	sum_multiple_lists(Xs,R),
+	sum_lists(X,R,Rs).
+	
+sum_multiple_lists([X],X).
+
 gen1([Val|Vals],[RAttr|RAttrs],RMaps) :-
 	RAttr =.. [row|Doms],
 	gen2(Val,Doms,Map),
@@ -98,30 +104,80 @@ gen2(_Val,[],[]).
 
 %entropia_total recibe EntropyTable, Atributos que seria rows_domains pero leidos del archivo de entrada, y devuelve la EntropyTotal.
 
-best_attr([RAttr|RAttrs],ContTable,BestAttr) :-
-	RAttr =.. [row|Doms],
-	
-prop_doms([],_,[]).
+test_row_values([
+row(young,false,false,fair,no),
+row(young,false,false,good,no),
+row(young,true,false,good,yes),
+row(young,true,true,fair,yes),
+row(young,false,false,fair,no),
+row(middle,false,false,fair,no),
+row(middle,false,false,good,no),
+row(middle,true,true,good,yes),
+row(middle,false,true,excelent,yes),
+row(middle,false,true,excelent,yes),
+row(old,false,true,excelent,yes),
+row(old,false,true,good,yes),
+row(old,true,false,good,yes),
+row(old,true,false,excelent,yes),
+row(old,false,false,fair,no)]).
 
-prop_doms([_Dom|Doms],ContTable,[Prop|Props]) :-
-	prop_dom(ContTable,Prop),
-	prop_doms(Doms,ContTable,Props).
+test_row_domains(
+[row(young,middle,old),
+row(false,true),
+row(false,true),
+row(fair,good,excelent),
+row(yes,no)]).
 
-prop_dom([ContClass|ContClasses],[Prop|Props]).
+test_best() :-
+	test_row_domains(RowsDomains),
+	test_row_values(RowsInsts),
+	gen0(RowsInsts,RowsDomains,[],ContTable,CantInsts),
+	write(RowsDomains),nl,nl,
+	write(RowsInsts),nl,nl,
+	write(ContTable),nl,nl,
+	write(CantInsts),nl,nl.
+	%best_attr(RowInsts,ContTable,BestAttr).
+
+%best_attr(RAttrs,ContTable,Totals,BestAttr) :-
 	
+%best_attr2([_Dom|Doms],[ContClass|ContClasses],[Map|Maps]) :-
+%	best_attr2(Doms,ContClasses,Maps).
+	
+%prop_attr([[Dom|Doms]|RAttrs],[Total|Totals],[Prop|Props]) :-
+
+%prop_attr([[],RAttr|RAttrs],Totals,_) :-
+%	prop_attr()
+	
+totals_dom([ContClass|ContClasses],Rs) :-
+	append(ContClassVals,[_,_],ContClass),
+	totals_dom(ContClasses,ContClassSum),
+	sum_lists(ContClassVals,ContClassSum,Rs).
+	
+totals_dom([ContClass],ContClassVals) :-
+	append(ContClassVals,[_,_],ContClass).
 
 entropy_class([],_,[]).
 
 entropy_class([ContClass|ContClasses],CantInsts,[Prop|Props]) :-
 	append(_,[CantClass,_Class], ContClass),
-	write(['CantClass: ',CantClass,' CantInsts: ',CantInsts]),nl,
+	%write(['CantClass: ',CantClass,' CantInsts: ',CantInsts]),nl,
 	Prop is CantClass / CantInsts,
-	write(['Prop: ',Prop]),nl,
+	%write(['Prop: ',Prop]),nl,
 	entropy_class(ContClasses,CantInsts,Props).
 
 %recibe EntropyTable y devuelve una lista con el total de elementos y la suma de la cantidad de elementos para cada clase:
 % genericamente [totalRegistros,[cantidad,Class1],...,[cantidad,ClassN]].
 % si recibe [[1,2,e],[0,2,p]] devuelve [5,[3,e],[2,p]]. 
+
+%para los atributos
+entropy_attr([],[],Res,Res).
+
+entropy_attr([PropAttr|PropsAttr],[PropDom|PropsDom],Res1,EntropyAttr):-
+	entropy(PropDom,0,EntropyDom),
+	write(['Entropy D: ',EntropyDom]),nl,
+	%en la teoria es primero menos y despues mas >:(
+	Res2 is Res1+PropAttr*EntropyDom,
+	entropy_attr(PropsAttr,PropsDom,Res2,EntropyAttr).
 
 %para la del sistema
 entropy([],Res,Res).
@@ -130,15 +186,6 @@ entropy([Prop|Props],Res1,Entropy):-
 	log2(Prop,Log),
 	Res2 is Res1-1*Prop*Log,
 	entropy(Props,Res2,Entropy).
-
-%para los atributos
-entropy_attr([],Res,Res).
-
-entropy_attr([Prop|Props],Res1,Entropy):-
-	entropy([Prop],0,Entropy1),
-	write(['Entropy D: ',Entropy1]),
-	Res2 is Res1-1*Prop*Entropy1,
-	entropy_attr(Props,Res2,Entropy).
 
 %calculo de logaritmo base 2. Recibe A y devuelve Res.
 log2(A,Res) :-
