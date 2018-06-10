@@ -1,4 +1,4 @@
-:- module(id3alt,[main/1]).
+:- module(id3alt,[main/1,atributos/2,atributo/1]).
 :- use_module(library(readutil)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,7 +47,8 @@ row(class)
 %%%% Y CREACION DE PREDICADOS DE LA BD %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-load_input(_T):-open('ejemplo_teoria.arff',read,_G,[alias(bufferEntrada)]),
+load_input(_T):-
+	%open('C:/Users/Gonzalo/git/DecisionTreeID3/ejemplo_teoria.arff',read,_G,[alias(bufferEntrada)]),
 	read_string(bufferEntrada, "\n", "\r", End, String),
 	split_string(String," ","",LString),
 	agregar_predicados(LString,End).
@@ -85,7 +86,7 @@ agregar_predicados(["@data"|_RestoLinea],_End):-
 agregar_predicados([Inst],_End):-
 	split_string(Inst, ",", "'", LInst),
 	listar_instancias(0,ListInsts),
-	atributos(Atrs),
+	atributos(Atrs,[]),
 	assert_instas(1,[LInst|ListInsts],Atrs).
 
 
@@ -123,8 +124,12 @@ assert_valors(Indice,[Val|Vals],[Atrib|RAtribs]) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% CONSULTAS A LA BD %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-atributos(As) :- 
-	findall(A,atributo(A),As),!.
+atributos(As,[]) :- 
+	findall(A,atributo(A),As).
+	
+atributos(As,[(Atrib,_)|ListFiltos]) :- 
+	atributos(As1,ListFiltos),
+	delete(As1,Atrib,As),!.
 
 dominios(Ds) :- 
 	findall((A,D),dominio(A,D),Ds),!.
@@ -132,8 +137,16 @@ dominios(Ds) :-
 dominios(Ds,A) :- 
 	findall(D,dominio(A,D),Ds),!.
 
-instancias(Is) :- 
+%instancias(Is) :- 
+%	findall(I,instancia(I),Is),!.
+	
+instancias(Is,[]) :- 
 	findall(I,instancia(I),Is),!.
+
+instancias(Is,[(AtribF,DominF)|ListFiltos]) :- 
+	findall(I,(instancia(I),valor(I,AtribF,DominF)),Is1),
+	instancias(Is2,ListFiltos),
+	intersection(Is1,Is2,Is),!.
 
 valores(Vs) :- 
 	findall((I,A,D),valor(I,A,D),Vs),!.
@@ -141,14 +154,38 @@ valores(Vs) :-
 clases(Cs) :-
 	findall(C,dominio(class,C),Cs),!.
 
-instancias_por_clase(Is,Clase) :-
+%instancias_por_clase(Is,Clase) :-
+%	findall(I,(instancia(I),valor(I,class,Clase)),Is),!.
+%
+%instancias_por_clase(Is,Atrib,Domin,Clase) :-
+%	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase)),Is),!.
+%
+%instancias_por_atrib(Is,Atrib,Domin) :-
+%	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is),!.
+	
+instancias_por_clase(Is,Clase,[]) :-
 	findall(I,(instancia(I),valor(I,class,Clase)),Is),!.
+	
+instancias_por_clase(Is,Clase,[(Atrib,Domin)|ListFiltos]):-
+	findall(I,(instancia(I),valor(I,class,Clase),valor(I,Atrib,Domin)),Is1),
+	instancias_por_clase(Is2,Clase,ListFiltos),
+	intersection(Is1,Is2,Is),!.
 
-instancias_por_clase(Is,Atrib,Domin,Clase) :-
+instancias_por_clase(Is,Atrib,Domin,Clase,[]) :-
 	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase)),Is),!.
 
-instancias_por_atrib(Is,Atrib,Domin) :-
+instancias_por_clase(Is,Atrib,Domin,Clase,[(AtribF,DominF)|ListFiltos]) :-
+	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase),valor(I,AtribF,DominF)),Is1),
+	instancias_por_clase(Is2,Atrib,Domin,Clase,ListFiltos),
+	intersection(Is1,Is2,Is),!.
+
+instancias_por_atrib(Is,Atrib,Domin,[]) :-
 	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is),!.
+	
+instancias_por_atrib(Is,Atrib,Domin,[(AtribF,DominF)|ListFiltos]) :-
+	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,AtribF,DominF)),Is1),
+	instancias_por_atrib(Is2,Atrib,Domin,ListFiltos),
+	intersection(Is1,Is2,Is),!.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% FIN CONSULTAS A LA BD %%%%%%%%
@@ -161,33 +198,33 @@ instancias_por_atrib(Is,Atrib,Domin) :-
 main(T) :-
 	load_input(T),
 	%listing,
-	atributos(As),
-	dominios(Ds),
-	instancias(Is),
-	valores(Vs),
-	entropia(E),
-	entropia_atrib(age,EA),
-	entropia_atrib(has_job,EHJ),
-	entropia_atrib(own_house,EOH),
-	entropia_atrib(credit_rating,ECR),
-	write('Atributos:'),nl,
-	write(As),nl,nl,
-	write('Dominios:'),nl,
-	write(Ds),nl,nl,
-	write('Instancias:'),nl,
-	write(Is),nl,nl,
-	write('Valores:'),nl,
-	write(Vs),nl,nl,
-	write('Entropia total:'),nl,
-	write(E),nl,nl,
-	write('Entropia de atributo age:'),nl,
-	write(EA),nl,nl,
-	write('Entropia de atributo has_job:'),nl,
-	write(EHJ),nl,nl,
-	write('Entropia de atributo own_house:'),nl,
-	write(EOH),nl,nl,
-	write('Entropia de atributo credit_raiting:'),nl,
-	write(ECR).
+	%atributos(As),
+	%dominios(Ds),
+	%instancias(Is),
+	%valores(Vs),
+	calcularNodo([]).
+%	entropia_atrib(age,EA),
+%	entropia_atrib(has_job,EHJ),
+%	entropia_atrib(own_house,EOH),
+%	entropia_atrib(credit_rating,ECR),
+%	write('Atributos:'),nl,
+%	write(As),nl,nl,
+%	write('Dominios:'),nl,
+%	write(Ds),nl,nl,
+%	write('Instancias:'),nl,
+%	write(Is),nl,nl,
+%	write('Valores:'),nl,
+%	write(Vs),nl,nl,
+%	write('Entropia total:'),nl,
+%	write(E),nl,nl,
+%	write('Entropia de atributo age:'),nl,
+%	write(EA),nl,nl,
+%	write('Entropia de atributo has_job:'),nl,
+%	write(EHJ),nl,nl,
+%	write('Entropia de atributo own_house:'),nl,
+%	write(EOH),nl,nl,
+%	write('Entropia de atributo credit_raiting:'),nl,
+%	write(ECR),nl,nl,
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% FIN MAIN %%%%%%%%
@@ -196,54 +233,64 @@ main(T) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% CALCULO DE ENTROPIA %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-entropia(Entropia) :-
-	instancias(Is),
+entropia(Entropia,Filtros) :-
+	instancias(Is,Filtros),
 	length(Is,Total),
 	clases(Cs),
-	entropia1(Cs,Total,0,Entropia).
+	entropia1(Cs,Total,0,Entropia,Filtros).
 	
-entropia1([],_,Res,Res).
+entropia1([],_,Res,Res,_).
 
-entropia1([Clase|Clases],Total,Res1,Entropia) :-
-	instancias_por_clase(Is,Clase),
+entropia1([Clase|Clases],Total,Res1,Entropia,Filtros) :-
+	instancias_por_clase(Is,Clase,Filtros),
+	write('instancias filtradas de la clase '),write(Clase),nl,write(Is),nl,
 	length(Is,CantClase),
 	Prop is CantClase / Total,
 	log2(Prop,Log),
 	Res2 is Res1-1*Prop*Log,
-	entropia1(Clases,Total,Res2,Entropia).
+	entropia1(Clases,Total,Res2,Entropia,Filtros).
 
-entropia_atrib(Atrib,Entropia) :-
-	instancias(Is),
+entropiaAtributos([_|[]],[],_).
+%entropiaAtributos([Atrib|[]],Entropia):-
+%	entropia_atrib(Atrib,Entropia).
+	
+entropiaAtributos([Atrib|Atribs],[(Atrib,Entropia)|ListEntropia],Filtros):-
+	entropia_atrib(Atrib,Entropia,Filtros),
+%	write(Atrib),write(','),write(Entropia),nl,
+	entropiaAtributos(Atribs,ListEntropia,Filtros).
+
+entropia_atrib(Atrib,Entropia,Filtros) :-
+	instancias(Is,Filtros),
 	length(Is,Total),
 	dominios(Ds,Atrib),
-	display([Ds,Atrib]),
-	entropia_atrib1(Ds,Atrib,Total,0,Entropia).
+	%display([Ds,Atrib]),
+	entropia_atrib1(Ds,Atrib,Total,0,Entropia,Filtros).
 	
-entropia_atrib1([],_,_,Res,Res).
+entropia_atrib1([],_,_,Res,Res,_).
 	
-entropia_atrib1([Domin|Domins],Atrib,Total,Res1,Entropia) :-
-	instancias_por_atrib(Is,Atrib,Domin),
+entropia_atrib1([Domin|Domins],Atrib,Total,Res1,Entropia,Filtros):-
+	instancias_por_atrib(Is,Atrib,Domin,Filtros),
 	length(Is,CantClase),
 	Prop is CantClase / Total,
-	entropia_domin(Atrib,Domin,EntropiaDomin),
+	entropia_domin(Atrib,Domin,EntropiaDomin,Filtros),
 	Res2 is Res1+Prop*EntropiaDomin,
-	entropia_atrib1(Domins,Atrib,Total,Res2,Entropia).
+	entropia_atrib1(Domins,Atrib,Total,Res2,Entropia,Filtros).
 
-entropia_domin(Atrib,Domin,Entropia) :-
-	instancias_por_atrib(Is,Atrib,Domin),
+entropia_domin(Atrib,Domin,Entropia,Filtros) :-
+	instancias_por_atrib(Is,Atrib,Domin,Filtros),
 	length(Is,Total),
 	clases(Cs),
-	entropia_domin1(Cs,Atrib,Domin,Total,0,Entropia).
+	entropia_domin1(Cs,Atrib,Domin,Total,0,Entropia,Filtros).
 	
-entropia_domin1([],_,_,_,Res,Res).
+entropia_domin1([],_,_,_,Res,Res,_).
 
-entropia_domin1([Clase|Clases],Atrib,Domin,Total,Res1,Entropia) :-
-	instancias_por_clase(Is,Atrib,Domin,Clase),
+entropia_domin1([Clase|Clases],Atrib,Domin,Total,Res1,Entropia,Filtros) :-
+	instancias_por_clase(Is,Atrib,Domin,Clase,Filtros),
 	length(Is,CantClase),
 	Prop is CantClase / Total,
 	log2(Prop,Log),
 	Res2 is Res1-1*Prop*Log,
-	entropia_domin1(Clases,Atrib,Domin,Total,Res2,Entropia).
+	entropia_domin1(Clases,Atrib,Domin,Total,Res2,Entropia,Filtros).
 
 log2(0,1).
 
@@ -254,4 +301,64 @@ log2(A,Res) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% FIN CALCULO DE ENTROPIA %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% APERTURA DEL ARBOL %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%calcularNodo(_):-
+%	atributos(As,[]),
+%	entropia(_,[]),
+%	entropiaAtributos(As,Entropia_atributo,[]),
+%	write(Entropia_atributo),nl,
+%	mejorAtributo(Entropia_atributo, (Atributo,_)),
+%	write('El mejor atributo es: '),write(Atributo),nl,nl,
+%	dominio(Atributo,Dom),
+%	write('Se filtrará por: '),write([(Atributo,Dom)]),nl,
+%	entropia(_,[(Atributo,Dom)]),
+%	atributos(As2,(Atributo,Dom)),
+%	entropiaAtributos(As2,Entropia_atributo2,[(Atributo,Dom)]),
+%	write(Entropia_atributo2),nl,
+%	mejorAtributo(Entropia_atributo2, Mejor2),
+%	write('El mejor atributo es: '),write(Mejor2),
+%	atributos(As3,[Mejor2|(atributo,Dom)]),
+%	write(As3),nl,nl.
+	
+calcularNodo(Filtro):-
+	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
+	atributos(As,Filtro),
+	entropia(E,Filtro),
+	write('La entropía total es: '),write(E),nl,nl,
+	entropiaAtributos(As,Entropia_atributo,Filtro),
+	write('La entropía de cada atributo es: '),write(Entropia_atributo),nl,nl,
+	mejorAtributo(Entropia_atributo,Atributo),
+	write('El mejor atributo es: '),write(Atributo),nl,
+	dominios(ListDom,Atributo),
+	write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
+%	retract(atributo(Atributo)),
+%	atributos(As2,[),
+%	write('Quedan los atributos: '),write(As2),nl,nl,nl,nl.
+	calcularNodoAux(Atributo,ListDom,Filtro).
+	
+calcularNodoAux(_,[],_).
+
+calcularNodoAux(Atributo,[Dom|ListDom],Filtro):-
+	calcularNodo([(Atributo,Dom)|Filtro]),
+	calcularNodoAux(Atributo,ListDom,Filtro).
+
+mejorAtributo(Entropia_atributo,Mejor):-mejorAtributoAux(Entropia_atributo,(Mejor,_)).
+
+mejorAtributoAux([Ultimo|[]],Ultimo).
+
+mejorAtributoAux([(Atrib,Entropia)|RList],(Atrib,Entropia)):-
+	mejorAtributoAux(RList,(_,MejorEntropia)),
+	Entropia < MejorEntropia.
+	
+%entropia no es menor
+mejorAtributoAux([_|RList],Mejor):-
+	mejorAtributoAux(RList,Mejor).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% FIN APERTURA DEL ARBOL %%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -4,9 +4,9 @@
 :- dynamic step/1.
 
 id3_run(_Tree) :-
-	load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_values_test.csv', RowsInsts),
+	load('C:/Users/Gonzalo/git/DecisionTreeID3/mushroom_values_test.csv', RowsInsts),
 	%load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_domains_test.csv', _RowsDomains),
-	load('D:/giuli/Documents/EclipseProjects/DecisionTreeID3/mushroom_attributes_test.csv', _RowsAttrs),
+	load('C:/Users/Gonzalo/git/DecisionTreeID3/mushroom_attributes_test.csv', _RowsAttrs),
 	rows_domains(RowsDomains),
 	%write('Instancias'),nl,
 	%write(RowsInst),nl,nl,
