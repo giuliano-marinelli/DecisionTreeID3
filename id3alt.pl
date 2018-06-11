@@ -1,4 +1,4 @@
-:- module(id3alt,[main/1,atributos/2,atributo/1]).
+:- module(id3alt,[main/1]).
 :- use_module(library(readutil)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -136,9 +136,6 @@ dominios(Ds) :-
 
 dominios(Ds,A) :- 
 	findall(D,dominio(A,D),Ds),!.
-
-%instancias(Is) :- 
-%	findall(I,instancia(I),Is),!.
 	
 instancias(Is,[]) :- 
 	findall(I,instancia(I),Is),!.
@@ -233,6 +230,10 @@ main(T) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% CALCULO DE ENTROPIA %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+entropia(0,Filtros) :-
+	instancias([],Filtros),!.
+
 entropia(Entropia,Filtros) :-
 	instancias(Is,Filtros),
 	length(Is,Total),
@@ -243,7 +244,6 @@ entropia1([],_,Res,Res,_).
 
 entropia1([Clase|Clases],Total,Res1,Entropia,Filtros) :-
 	instancias_por_clase(Is,Clase,Filtros),
-	write('instancias filtradas de la clase '),write(Clase),nl,write(Is),nl,
 	length(Is,CantClase),
 	Prop is CantClase / Total,
 	log2(Prop,Log),
@@ -258,6 +258,9 @@ entropiaAtributos([Atrib|Atribs],[(Atrib,Entropia)|ListEntropia],Filtros):-
 	entropia_atrib(Atrib,Entropia,Filtros),
 %	write(Atrib),write(','),write(Entropia),nl,
 	entropiaAtributos(Atribs,ListEntropia,Filtros).
+
+entropia_atrib(_,0,Filtros) :-
+	instancias([],Filtros),!.
 
 entropia_atrib(Atrib,Entropia,Filtros) :-
 	instancias(Is,Filtros),
@@ -276,6 +279,9 @@ entropia_atrib1([Domin|Domins],Atrib,Total,Res1,Entropia,Filtros):-
 	Res2 is Res1+Prop*EntropiaDomin,
 	entropia_atrib1(Domins,Atrib,Total,Res2,Entropia,Filtros).
 
+entropia_domin(Atrib,Domin,0,Filtros):-
+	instancias_por_atrib([],Atrib,Domin,Filtros),!.
+
 entropia_domin(Atrib,Domin,Entropia,Filtros) :-
 	instancias_por_atrib(Is,Atrib,Domin,Filtros),
 	length(Is,Total),
@@ -292,7 +298,7 @@ entropia_domin1([Clase|Clases],Atrib,Domin,Total,Res1,Entropia,Filtros) :-
 	Res2 is Res1-1*Prop*Log,
 	entropia_domin1(Clases,Atrib,Domin,Total,Res2,Entropia,Filtros).
 
-log2(0,1).
+log2(0,1):-!.
 
 log2(A,Res) :-
 	log10(A,R),
@@ -306,24 +312,14 @@ log2(A,Res) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% APERTURA DEL ARBOL %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%calcularNodo(_):-
-%	atributos(As,[]),
-%	entropia(_,[]),
-%	entropiaAtributos(As,Entropia_atributo,[]),
-%	write(Entropia_atributo),nl,
-%	mejorAtributo(Entropia_atributo, (Atributo,_)),
-%	write('El mejor atributo es: '),write(Atributo),nl,nl,
-%	dominio(Atributo,Dom),
-%	write('Se filtrará por: '),write([(Atributo,Dom)]),nl,
-%	entropia(_,[(Atributo,Dom)]),
-%	atributos(As2,(Atributo,Dom)),
-%	entropiaAtributos(As2,Entropia_atributo2,[(Atributo,Dom)]),
-%	write(Entropia_atributo2),nl,
-%	mejorAtributo(Entropia_atributo2, Mejor2),
-%	write('El mejor atributo es: '),write(Mejor2),
-%	atributos(As3,[Mejor2|(atributo,Dom)]),
-%	write(As3),nl,nl.
+	
+calcularNodo(Filtro):-
+	entropia(E,Filtro),
+	(E = 0 ; E = 0.0),
+	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
+	respuestaDelNodo(Filtro,Clase),
+	write('La entropía total es: '),write(0),nl,
+	write('Esta hoja es la clase: '),write(Clase),nl,nl,nl,nl.
 	
 calcularNodo(Filtro):-
 	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
@@ -336,9 +332,6 @@ calcularNodo(Filtro):-
 	write('El mejor atributo es: '),write(Atributo),nl,
 	dominios(ListDom,Atributo),
 	write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
-%	retract(atributo(Atributo)),
-%	atributos(As2,[),
-%	write('Quedan los atributos: '),write(As2),nl,nl,nl,nl.
 	calcularNodoAux(Atributo,ListDom,Filtro).
 	
 calcularNodoAux(_,[],_).
@@ -357,7 +350,19 @@ mejorAtributoAux([(Atrib,Entropia)|RList],(Atrib,Entropia)):-
 	
 %entropia no es menor
 mejorAtributoAux([_|RList],Mejor):-
-	mejorAtributoAux(RList,Mejor).
+	mejorAtributoAux(RList,Mejor),!.
+	
+respuestaDelNodo(Filtro,Clase):-
+	clases(ListClases),
+	respuestaDelNodoAux(Filtro,ListClases,Clase).
+	
+respuestaDelNodoAux(Filtro,[Clase|ListClases],Resp):-
+	instancias_por_clase([],Clase,Filtro),
+	respuestaDelNodoAux(Filtro,ListClases,Resp).
+	
+%tiene al menos una instancia por lo que es la clase del nodo
+respuestaDelNodoAux(Filtro,[Clase|_],Clase):-
+	instancias(_,Filtro).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% FIN APERTURA DEL ARBOL %%%%%%%%
