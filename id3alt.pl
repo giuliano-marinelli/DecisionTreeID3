@@ -48,7 +48,7 @@ row(class)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 load_input(_T):-
-	%open('C:/Users/Gonzalo/git/DecisionTreeID3/ejemplo_teoria.arff',read,_G,[alias(bufferEntrada)]),
+	open('mushroom_parseado.arff',read,_G,[alias(bufferEntrada)]),
 	read_string(bufferEntrada, "\n", "\r", End, String),
 	split_string(String," ","",LString),
 	agregar_predicados(LString,End).
@@ -137,13 +137,29 @@ dominios(Ds) :-
 dominios(Ds,A) :- 
 	findall(D,dominio(A,D),Ds),!.
 	
-instancias(Is,[]) :- 
+instancias(Is,[]) :-
 	findall(I,instancia(I),Is),!.
 
-instancias(Is,[(AtribF,DominF)|ListFiltos]) :- 
-	findall(I,(instancia(I),valor(I,AtribF,DominF)),Is1),
-	instancias(Is2,ListFiltos),
-	intersection(Is1,Is2,Is),!.
+instancias(Is,ListFiltos) :- 
+	findall(I,(instancia(I)),Is1),
+	instancias_aux(Is1,ListFiltos,Is),!.
+
+
+instancias_aux(Is,[], Is).
+instancias_aux(Is1,[(Atr,Val)|RFiltros], Is) :- 
+	findall(I,(member(I,Is1),valor(I,Atr,Val)),Is2),
+	instancias_aux(Is2,RFiltros,Is),!.
+
+
+%instancias_aux(Is,[], Is).
+%instancias_aux(Is1,Filtros,Is) :- 
+%	findall(I,(member(I,Is1),valor(I,Atr,Val),cumple_filtro((Atr,Val),Filtros,true)),Is2),
+%	instancias_aux(Is2,Filtros,Is).
+%cumple_filtro((_Atr,_Val),[],false).
+%cumple_filtro((Atr2,Val2),[(Atr,Val)|_RFiltros],ASD):-display([Atr,Val]).
+%cumple_filtro((Atr,Val),[(Atr,Val)|_RFiltros],true):-write('AAAAAAAAAAAAAAAAAAAAA').
+%cumple_filtro((Atr,Val),[(_Atr2,_Val2)|RFiltros],Cumple):-
+%	cumple_filtro((Atr,Val),RFiltros,Cumple).
 
 valores(Vs) :- 
 	findall((I,A,D),valor(I,A,D),Vs),!.
@@ -318,16 +334,16 @@ calcularNodo(Filtro):-
 	(E = 0 ; E = 0.0),
 	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
 	respuestaDelNodo(Filtro,Clase),
-	write('La entropía total es: '),write(0),nl,
+	write('La entropia total es: '),write(0),nl,
 	write('Esta hoja es la clase: '),write(Clase),nl,nl,nl,nl.
 	
 calcularNodo(Filtro):-
 	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
 	atributos(As,Filtro),
 	entropia(E,Filtro),
-	write('La entropía total es: '),write(E),nl,nl,
+	write('La entropia total es: '),write(E),nl,nl,
 	entropiaAtributos(As,Entropia_atributo,Filtro),
-	write('La entropía de cada atributo es: '),write(Entropia_atributo),nl,nl,
+	write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
 	mejorAtributo(Entropia_atributo,Atributo),
 	write('El mejor atributo es: '),write(Atributo),nl,
 	dominios(ListDom,Atributo),
