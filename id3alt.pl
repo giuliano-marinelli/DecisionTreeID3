@@ -105,10 +105,18 @@ assert_domins([Domin|Domins],Atrib) :-
 assert_instas(_,[],_).
 assert_instas(Indice,[RInsta|RInstas],RAtribs) :-
 	assert_valors(Indice,RInsta,RAtribs),
-	assert(instancia(Indice)),
+	random(Rand),
+	assert_instas_rand(Rand,Indice),
 	IndiceSig is Indice + 1,
 	assert_instas(IndiceSig,RInstas,RAtribs).
 	
+assert_instas_rand(Rand,Indice) :-
+	Rand < 0.66,
+	assert(instancia(Indice)).
+
+assert_instas_rand(_Rand,Indice) :-
+	assert(instancia_test(Indice)).
+
 assert_valors(_,[],[]).
 assert_valors(Indice,[Val|Vals],[Atrib|RAtribs]) :-
 	atom_string(ValAtom,Val),
@@ -127,8 +135,8 @@ assert_valors(Indice,[Val|Vals],[Atrib|RAtribs]) :-
 atributos(As,[]) :- 
 	findall(A,atributo(A),As).
 	
-atributos(As,[(Atrib,_)|ListFiltos]) :- 
-	atributos(As1,ListFiltos),
+atributos(As,[(Atrib,_)|ListFiltros]) :- 
+	atributos(As1,ListFiltros),
 	delete(As1,Atrib,As),!.
 
 dominios(Ds) :- 
@@ -136,30 +144,15 @@ dominios(Ds) :-
 
 dominios(Ds,A) :- 
 	findall(D,dominio(A,D),Ds),!.
-	
-instancias(Is,[]) :-
-	findall(I,instancia(I),Is),!.
 
-instancias(Is,ListFiltos) :- 
+instancias(Is,ListFiltros) :- 
 	findall(I,(instancia(I)),Is1),
-	instancias_aux(Is1,ListFiltos,Is),!.
+	filtrar(Is1,ListFiltros,Is),!.
 
-
-instancias_aux(Is,[], Is).
-instancias_aux(Is1,[(Atr,Val)|RFiltros], Is) :- 
+filtrar(Is,[], Is).
+filtrar(Is1,[(Atr,Val)|RFiltros], Is) :- 
 	findall(I,(member(I,Is1),valor(I,Atr,Val)),Is2),
-	instancias_aux(Is2,RFiltros,Is),!.
-
-
-%instancias_aux(Is,[], Is).
-%instancias_aux(Is1,Filtros,Is) :- 
-%	findall(I,(member(I,Is1),valor(I,Atr,Val),cumple_filtro((Atr,Val),Filtros,true)),Is2),
-%	instancias_aux(Is2,Filtros,Is).
-%cumple_filtro((_Atr,_Val),[],false).
-%cumple_filtro((Atr2,Val2),[(Atr,Val)|_RFiltros],ASD):-display([Atr,Val]).
-%cumple_filtro((Atr,Val),[(Atr,Val)|_RFiltros],true):-write('AAAAAAAAAAAAAAAAAAAAA').
-%cumple_filtro((Atr,Val),[(_Atr2,_Val2)|RFiltros],Cumple):-
-%	cumple_filtro((Atr,Val),RFiltros,Cumple).
+	filtrar(Is2,RFiltros,Is),!.
 
 valores(Vs) :- 
 	findall((I,A,D),valor(I,A,D),Vs),!.
@@ -176,29 +169,17 @@ clases(Cs) :-
 %instancias_por_atrib(Is,Atrib,Domin) :-
 %	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is),!.
 	
-instancias_por_clase(Is,Clase,[]) :-
-	findall(I,(instancia(I),valor(I,class,Clase)),Is),!.
+instancias_por_clase(Is,Clase,ListFiltros):-
+	findall(I,(instancia(I),valor(I,class,Clase)),Is1),
+	filtrar(Is1,ListFiltros,Is),!.
+
+instancias_por_clase(Is,Atrib,Domin,Clase,ListFiltros) :-
+	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase)),Is1),
+	filtrar(Is1,ListFiltros,Is),!.
 	
-instancias_por_clase(Is,Clase,[(Atrib,Domin)|ListFiltos]):-
-	findall(I,(instancia(I),valor(I,class,Clase),valor(I,Atrib,Domin)),Is1),
-	instancias_por_clase(Is2,Clase,ListFiltos),
-	intersection(Is1,Is2,Is),!.
-
-instancias_por_clase(Is,Atrib,Domin,Clase,[]) :-
-	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase)),Is),!.
-
-instancias_por_clase(Is,Atrib,Domin,Clase,[(AtribF,DominF)|ListFiltos]) :-
-	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase),valor(I,AtribF,DominF)),Is1),
-	instancias_por_clase(Is2,Atrib,Domin,Clase,ListFiltos),
-	intersection(Is1,Is2,Is),!.
-
-instancias_por_atrib(Is,Atrib,Domin,[]) :-
-	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is),!.
-	
-instancias_por_atrib(Is,Atrib,Domin,[(AtribF,DominF)|ListFiltos]) :-
-	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,AtribF,DominF)),Is1),
-	instancias_por_atrib(Is2,Atrib,Domin,ListFiltos),
-	intersection(Is1,Is2,Is),!.
+instancias_por_atrib(Is,Atrib,Domin,ListFiltros) :-
+	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is1),
+	filtrar(Is1,ListFiltros,Is),!.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% FIN CONSULTAS A LA BD %%%%%%%%
@@ -215,7 +196,10 @@ main(T) :-
 	%dominios(Ds),
 	%instancias(Is),
 	%valores(Vs),
-	calcularNodo([]).
+	calcularNodo([],_),
+	imprimir_arbol,nl,
+	testing(R),
+	write('Porcentaje de acierto: '),write(R),nl.
 %	entropia_atrib(age,EA),
 %	entropia_atrib(has_job,EHJ),
 %	entropia_atrib(own_house,EOH),
@@ -329,32 +313,53 @@ log2(A,Res) :-
 %%%%%%%%% APERTURA DEL ARBOL %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
-calcularNodo(Filtro):-
+	
+calcularNodo([],Atributo):-
+	atributos(As,Filtro),
+	%% entropia(E,Filtro),
+	%% write('La entropia total es: '),write(E),nl,nl,
+	entropiaAtributos(As,Entropia_atributo,Filtro),
+	%% write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
+	mejorAtributo(Entropia_atributo,Atributo),
+	%% write('El mejor atributo es: '),write(Atributo),nl,
+	assert(raiz(Atributo)),
+	dominios(ListDom,Atributo),
+	%% write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
+	calcularNodoAux(Atributo,ListDom,Filtro).
+
+calcularNodo(Filtro,Clase):-
 	entropia(E,Filtro),
 	(E = 0 ; E = 0.0),
-	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
-	respuestaDelNodo(Filtro,Clase),
-	write('La entropia total es: '),write(0),nl,
-	write('Esta hoja es la clase: '),write(Clase),nl,nl,nl,nl.
+	%% write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
+	respuestaDelNodo(Filtro,Clase).
+	%% write('La entropia total es: '),write(0),nl,
+	%% write('Esta hoja es la clase: '),write(Clase),nl,nl,nl,nl.
 	
-calcularNodo(Filtro):-
-	write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
+
+calcularNodo(Filtro,Atributo):-
+	%% write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
 	atributos(As,Filtro),
-	entropia(E,Filtro),
-	write('La entropia total es: '),write(E),nl,nl,
+	%% entropia(E,Filtro),
+	%% write('La entropia total es: '),write(E),nl,nl,
 	entropiaAtributos(As,Entropia_atributo,Filtro),
-	write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
+	%% write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
 	mejorAtributo(Entropia_atributo,Atributo),
-	write('El mejor atributo es: '),write(Atributo),nl,
+	%% write('El mejor atributo es: '),write(Atributo),nl,
 	dominios(ListDom,Atributo),
-	write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
+	%% write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
 	calcularNodoAux(Atributo,ListDom,Filtro).
 	
 calcularNodoAux(_,[],_).
 
 calcularNodoAux(Atributo,[Dom|ListDom],Filtro):-
-	calcularNodo([(Atributo,Dom)|Filtro]),
+	calcularNodo([(Atributo,Dom)|Filtro],Nodo),
+	insertar_arco(Atributo,Dom,Nodo,Filtro),
 	calcularNodoAux(Atributo,ListDom,Filtro).
+
+insertar_arco(Atributo,Dom,Nodo,Filtro) :-
+	instancias(I,[(Atributo,Dom)|Filtro]),
+	length(I,Cant),
+	assert(arco(Atributo,Dom,Nodo,Cant)).
 
 mejorAtributo(Entropia_atributo,Mejor):-mejorAtributoAux(Entropia_atributo,(Mejor,_)).
 
@@ -362,7 +367,7 @@ mejorAtributoAux([Ultimo|[]],Ultimo).
 
 mejorAtributoAux([(Atrib,Entropia)|RList],(Atrib,Entropia)):-
 	mejorAtributoAux(RList,(_,MejorEntropia)),
-	Entropia < MejorEntropia.
+	Entropia =< MejorEntropia.
 	
 %entropia no es menor
 mejorAtributoAux([_|RList],Mejor):-
@@ -383,3 +388,58 @@ respuestaDelNodoAux(Filtro,[Clase|_],Clase):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% FIN APERTURA DEL ARBOL %%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% PINTAR ARBOL %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+imprimir_arbol:-
+	findall((N1,D,N2,C),arco(N1,D,N2,C),A),
+	imprimir_nodos(A,0).
+
+imprimir_nodos([],_N).
+
+imprimir_nodos([(N1,Dom,N2,C)|Arcos],N) :-
+	dominio(class,N2),
+	write('"'),write(N1),write('"'),write(' -> '),write('"'),write(N2),write(N),write(' ('),write(C),write(')"'),write(' [label='),write(Dom),write(']'),write(';'),nl,
+	M is N+1,
+	imprimir_nodos(Arcos,M).
+
+imprimir_nodos([(N1,Dom,N2,_C)|Arcos],N) :-
+	write('"'),write(N1),write('"'),write(' -> '),write('"'),write(N2),write('"'),write(' [label='),write(Dom),write(']'),write(';'),nl,
+	imprimir_nodos(Arcos,N).
+
+%%%%%%%%
+
+testing(Rs) :-
+	findall(I,instancia_test(I),Is),
+	length(Is,Total),
+	testing2(Is,Suma),
+	Rs is Suma / Total,
+	write('Suma: '),write(Suma),nl,
+	write('Total: '),write(Total),nl.
+
+testing2([],0).
+
+testing2([I|Is],Suma) :-
+	raiz(Raiz),
+	test_inst(I,Raiz,R),
+	testing2(Is,Rs),
+	Suma is R + Rs.
+
+test_inst(I,Nodo,R) :-
+	valor(I,Nodo,Dom),
+	arco(Nodo,Dom,ProxNodo,_),
+	atributo(ProxNodo),
+	test_inst(I,ProxNodo,R).
+
+test_inst(I,Nodo,R) :-
+	valor(I,Nodo,Dom),
+	arco(Nodo,Dom,DomClase,_),
+	dominio(class,DomClase),
+	valor(I,class,DomClase),
+	R is 1.
+
+test_inst(_I,_Nodo,0).
