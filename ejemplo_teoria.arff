@@ -1,0 +1,38 @@
+% conjunto de prueba.
+% 
+% Entropia total:
+% 0.9709505944546687
+%
+% Entropia de atributo age:
+% 0.8879430945988999
+%
+% Entropia de atributo has_job:
+% 0.6473003963031124
+%
+% Entropia de atributo own_house:
+% 0.5509775004326937
+%
+% Entropia de atributo credit_raiting:
+% 0.6079610319175832
+@relation mushroom
+@attribute age { 'young', 'middle', 'old'}
+@attribute has_job { 'false', 'true'}
+@attribute own_house { 'false', 'true'}
+@attribute credit_rating { 'fair', 'good', 'excellent'}
+@attribute class { 'yes', 'no'}
+@data
+young,false,false,fair,no
+young,false,false,good,no
+young,true,false,good,yes
+young,true,true,fair,yes
+young,false,false,fair,no
+middle,false,false,fair,no
+middle,false,false,good,no
+middle,true,true,good,yes
+middle,false,true,excellent,yes
+middle,false,true,excellent,yes
+old,false,true,excellent,yes
+old,false,true,good,yes
+old,true,false,good,yes
+old,true,false,excellent,yes
+old,false,false,fair,no
