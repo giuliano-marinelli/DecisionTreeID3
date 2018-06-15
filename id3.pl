@@ -82,15 +82,10 @@ assert_valors(Indice,[Val|Vals],[Atrib|RAtribs]) :-
 	assert(valor(Indice,Atrib,ValAtom)),
 	assert_valors(Indice,Vals,RAtribs).
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%% FIN LECTURA DEL ARCHIVO DE ENTRADA %%%%%%
-%%%%%% Y CREACION DE PREDICADOS DE LA BD %%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% CONSULTAS A LA BD %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 atributos(As,[]) :- 
 	findall(A,atributo(A),As).
 	
@@ -118,15 +113,6 @@ valores(Vs) :-
 
 clases(Cs) :-
 	findall(C,dominio(class,C),Cs),!.
-
-%instancias_por_clase(Is,Clase) :-
-%	findall(I,(instancia(I),valor(I,class,Clase)),Is),!.
-%
-%instancias_por_clase(Is,Atrib,Domin,Clase) :-
-%	findall(I,(instancia(I),valor(I,Atrib,Domin),valor(I,class,Clase)),Is),!.
-%
-%instancias_por_atrib(Is,Atrib,Domin) :-
-%	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is),!.
 	
 instancias_por_clase(Is,Clase,ListFiltros):-
 	findall(I,(instancia(I),valor(I,class,Clase)),Is1),
@@ -140,51 +126,17 @@ instancias_por_atrib(Is,Atrib,Domin,ListFiltros) :-
 	findall(I,(instancia(I),valor(I,Atrib,Domin)),Is1),
 	filtrar(Is1,ListFiltros,Is),!.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% FIN CONSULTAS A LA BD %%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% MAIN %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 main(T) :-
+	write('Calculando arbol...'),nl,nl,
 	load_input(T),
-	%listing,
-	%atributos(As),
-	%dominios(Ds),
-	%instancias(Is),
-	%valores(Vs),
 	calcularNodo([],_),
 	imprimir_arbol,nl,
 	testing(R),
 	write('Porcentaje de acierto: '),write(R),nl.
-%	entropia_atrib(age,EA),
-%	entropia_atrib(has_job,EHJ),
-%	entropia_atrib(own_house,EOH),
-%	entropia_atrib(credit_rating,ECR),
-%	write('Atributos:'),nl,
-%	write(As),nl,nl,
-%	write('Dominios:'),nl,
-%	write(Ds),nl,nl,
-%	write('Instancias:'),nl,
-%	write(Is),nl,nl,
-%	write('Valores:'),nl,
-%	write(Vs),nl,nl,
-%	write('Entropia total:'),nl,
-%	write(E),nl,nl,
-%	write('Entropia de atributo age:'),nl,
-%	write(EA),nl,nl,
-%	write('Entropia de atributo has_job:'),nl,
-%	write(EHJ),nl,nl,
-%	write('Entropia de atributo own_house:'),nl,
-%	write(EOH),nl,nl,
-%	write('Entropia de atributo credit_raiting:'),nl,
-%	write(ECR),nl,nl,
-
-%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% FIN MAIN %%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% CALCULO DE ENTROPIA %%%%%%%%%%
@@ -210,12 +162,9 @@ entropia1([Clase|Clases],Total,Res1,Entropia,Filtros) :-
 	entropia1(Clases,Total,Res2,Entropia,Filtros).
 
 entropiaAtributos([_|[]],[],_).
-%entropiaAtributos([Atrib|[]],Entropia):-
-%	entropia_atrib(Atrib,Entropia).
 	
 entropiaAtributos([Atrib|Atribs],[(Atrib,Entropia)|ListEntropia],Filtros):-
 	entropia_atrib(Atrib,Entropia,Filtros),
-%	write(Atrib),write(','),write(Entropia),nl,
 	entropiaAtributos(Atribs,ListEntropia,Filtros).
 
 entropia_atrib(_,0,Filtros) :-
@@ -225,7 +174,6 @@ entropia_atrib(Atrib,Entropia,Filtros) :-
 	instancias(Is,Filtros),
 	length(Is,Total),
 	dominios(Ds,Atrib),
-	%display([Ds,Atrib]),
 	entropia_atrib1(Ds,Atrib,Total,0,Entropia,Filtros).
 	
 entropia_atrib1([],_,_,Res,Res,_).
@@ -265,47 +213,28 @@ log2(A,Res) :-
 	Res is R/T.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% FIN CALCULO DE ENTROPIA %%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% APERTURA DEL ARBOL %%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	
 calcularNodo([],Atributo):-
 	atributos(As,Filtro),
-	%% entropia(E,Filtro),
-	%% write('La entropia total es: '),write(E),nl,nl,
 	entropiaAtributos(As,Entropia_atributo,Filtro),
-	%% write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
 	mejorAtributo(Entropia_atributo,Atributo),
-	%% write('El mejor atributo es: '),write(Atributo),nl,
 	assert(raiz(Atributo)),
 	dominios(ListDom,Atributo),
-	%% write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
 	calcularNodoAux(Atributo,ListDom,Filtro).
 
 calcularNodo(Filtro,Clase):-
 	entropia(E,Filtro),
 	(E = 0 ; E = 0.0),
-	%% write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
 	respuestaDelNodo(Filtro,Clase).
-	%% write('La entropia total es: '),write(0),nl,
-	%% write('Esta hoja es la clase: '),write(Clase),nl,nl,nl,nl.
 	
-
 calcularNodo(Filtro,Atributo):-
-	%% write('Se inicia el nodo con los filtros: '),write(Filtro),nl,nl,
 	atributos(As,Filtro),
-	%% entropia(E,Filtro),
-	%% write('La entropia total es: '),write(E),nl,nl,
 	entropiaAtributos(As,Entropia_atributo,Filtro),
-	%% write('La entropia de cada atributo es: '),write(Entropia_atributo),nl,nl,
 	mejorAtributo(Entropia_atributo,Atributo),
-	%% write('El mejor atributo es: '),write(Atributo),nl,
 	dominios(ListDom,Atributo),
-	%% write('tiene los dominios: '),write(ListDom),nl,nl,nl,nl,
 	calcularNodoAux(Atributo,ListDom,Filtro).
 	
 calcularNodoAux(_,[],_).
@@ -345,11 +274,6 @@ respuestaDelNodoAux(Filtro,[Clase|_],Clase):-
 	instancias(_,Filtro).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%% FIN APERTURA DEL ARBOL %%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%% PINTAR ARBOL %%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -370,7 +294,9 @@ imprimir_nodos([(N1,Dom,N2,_C)|Arcos],N) :-
 	write('"'),write(N1),write('"'),write(' -> '),write('"'),write(N2),write('"'),write(' [label='),write(Dom),write(']'),write(';'),nl,
 	imprimir_nodos(Arcos,N).
 
-%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% TESTING %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 testing(Rs) :-
 	findall(I,instancia_test(I),Is),
