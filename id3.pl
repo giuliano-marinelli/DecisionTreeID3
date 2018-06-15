@@ -298,8 +298,7 @@ imprimir_nodos([(Nodo1,Domin,Nodo2,Clase)|Arcos],Indice) :-
 	imprimir_nodos(Arcos,IndiceSig).
 
 imprimir_nodos([(Nodo1,Domin,Nodo2,_C)|Arcos],Indice) :-
-	write('"'),write(Nodo1),write('"'),write(' -> '),write('"'),write(Nodo2),write(Indice),write('"'),write(' [label='),write(Domin),write(']'),write(';'),nl,
-	%IndiceSig is Indice + 1,
+	write('"'),write(Nodo1),write('"'),write(' -> '),write('"'),write(Nodo2),write('"'),write(' [label='),write(Domin),write(']'),write(';'),nl,
 	imprimir_nodos(Arcos,Indice).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
