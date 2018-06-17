@@ -369,7 +369,6 @@ cargar_predicados_necesarios:-
 	assert(matriz_confusion(Clase,0,0)),
 	assert(matriz_confusion(negativa,0,0)).
 
-
 calcular_precision_recall:-
 		clase_positiva(ClaseP),
 		write('La clase positiva es: '),
@@ -377,26 +376,28 @@ calcular_precision_recall:-
 		matriz_confusion(ClaseP,TP,FN),
 		matriz_confusion(negativa,FP,TN),
 		write('Matriz de confusion: '),nl,
-		write('clase positiva: '),write(TP),write(' '),write(FN),nl,
-		write('clase negativa: '),write(FP),write(' '),write(TN),nl,
-		precision(FP,TP,Prec),
-		recall(TP,FN,Rec),
-		total_aciertos(FP,TN,TP,FN,Total),
-		write('La presicion del modelo es: '),write(Prec),nl,
-		write('El recall del modelo es: '),write(Rec),nl,
-		Total2 is Total*100,
-		write('El total de aciertos es: '),write(Total2),write('%'),nl.
+		write('	Clase positiva: '),write(TP),write('	'),write(FN),nl,
+		write('	Clase negativa: '),write(FP),write('	'),write(TN),nl,
+		precision(FP,TP,Precision),
+		recall(TP,FN,Recall),
+		total_aciertos(FP,TN,TP,FN,Aciertos),
+		PrecisionPorc is Precision*100,
+		write('La presicion del modelo es: '),write(PrecisionPorc),write('%'),nl,
+		RecallPorc is Recall*100,
+		write('El recall del modelo es: '),write(RecallPorc),write('%'),nl,
+		AciertosPorc is Aciertos*100,
+		write('El total de aciertos es: '),write(AciertosPorc),write('%'),nl.
 
-precision(FP,TP,Prec):-
+precision(FP,TP,Precision):-
 	TP+FP > 0,
-	Prec is TP/(TP+FP).
+	Precision is TP/(TP+FP).
 
 %si llega a este caso es porque habia una division por cero. Si llego hasta aca, es porque no hizo nada bien..
 precision(_FP,_TP,0). 
 
-recall(TP,FN,Rec):-
+recall(TP,FN,Recall):-
 	TP+FN > 0,
-	Rec is TP/(TP+FN).
+	Recall is TP/(TP+FN).
 
 %si llega a este caso es porque habia una division por cero. Si llego hasta aca, es porque no hizo nada bien..
 recall(_TP,_FN,0). 
